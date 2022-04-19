@@ -3,9 +3,9 @@ import os
 import string
 from datetime import datetime
 
+import joblib
 import pandas as pd
 import regex as re
-from tqdm import tqdm
 
 
 class LCSObject:
@@ -28,8 +28,11 @@ class Node:
         self.childD = dict()
 
 
-class LogParser:
-    def __init__(self, indir='./HDFS_1/', outdir='./result/', log_format=None, tau=0.5, rex=[], keep_para=True):
+class Spell:
+    def __init__(self, indir='./HDFS_1/', outdir='./result/', log_format=None, tau=0.5, rex=None, keep_para=True,
+                 train=True):
+        if rex is None:
+            rex = []
         self.path = indir
         self.logName = None
         self.savePath = outdir
@@ -38,6 +41,7 @@ class LogParser:
         self.df_log = None
         self.rex = rex
         self.keep_para = keep_para
+        self.train = train
 
     def LCS(self, seq1, seq2):
         lengths = [[0 for _ in range(len(seq2) + 1)] for i in range(len(seq1) + 1)]
@@ -186,10 +190,10 @@ class LogParser:
         self.df_log['EventId'] = ids
         self.df_log['EventTemplate'] = templates
         if self.keep_para:
-            tqdm.pandas(desc='get param')
-            self.df_log["ParameterList"] = self.df_log.progress_apply(self.get_parameter_list, axis=1)
-        self.df_log.to_csv(os.path.join(self.savePath, self.logname + '_structured.csv'), index=False)
-        df_event.to_csv(os.path.join(self.savePath, self.logname + '_templates.csv'), index=False)
+            self.df_log["ParameterList"] = self.df_log.apply(self.get_parameter_list, axis=1)
+        # self.df_log.to_csv(os.path.join(self.savePath, self.logname + '_structured.csv'), index=False)
+        # df_event.to_csv(os.path.join(self.savePath, self.logname + '_templates.csv'), index=False)
+        return self.df_log, df_event
 
     def printTree(self, node, dep):
         pStr = ''
@@ -209,14 +213,16 @@ class LogParser:
 
     def parse(self, logname):
         starttime = datetime.now()
-        print('Parsing file: ' + os.path.join(self.path, logname))
         self.logname = logname
         self.load_data()
-        rootNode = Node()
-        logCluL = []
 
-        print('parse log ...')
-        for idx, line in tqdm(self.df_log.iterrows(), total=self.linecount):
+        logCluL = []
+        if self.train:
+            rootNode = Node()
+        else:
+            rootNode = joblib.load('./user_data/model_data/sel_logParser_rootNode.pkl')
+
+        for idx, line in self.df_log.iterrows():
             logID = line['LineId']
             logmessageL = list(filter(lambda x: x != '', re.split(r'[\s=:,]', self.preprocess(line['Content']))))
             constLogMessL = [w for w in logmessageL if w != '<*>']
@@ -245,15 +251,15 @@ class LogParser:
                             self.addSeqToPrefixTree(rootNode, matchCluster)
             if matchCluster:
                 matchCluster.logIDL.append(logID)
-
+        if self.train:
+            joblib.dump(rootNode, './user_data/model_data/sel_logParser_rootNode.pkl')
         if not os.path.exists(self.savePath):
             os.makedirs(self.savePath)
 
-        self.outputResult(logCluL)
-        print('Parsing done. [Time taken: {!s}]'.format(datetime.now() - starttime))
+        log, event = self.outputResult(logCluL)
+        return log, event
 
     def load_data(self):
-        print('load log ...')
         headers, regex = self.generate_logformat_regex(self.logformat)
         self.df_log = self.log_to_dataframe(os.path.join(self.path, self.logname), regex, headers, self.logformat)
 
@@ -268,7 +274,7 @@ class LogParser:
         log_messages = []
         self.linecount = 0
         with open(log_file, 'r') as fin:
-            for line in tqdm(fin.readlines()):
+            for line in fin.readlines():
                 line = re.sub(r'[^\x00-\x7F]+', '<NASCII>', line)
                 try:
                     match = regex.search(line.strip())
