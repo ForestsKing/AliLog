@@ -36,9 +36,10 @@ if __name__ == '__main__':
         train_cra = CraFeatureConstruct(train_cra_log, train_submit, train=True)
 
         print(" 特征拼接...")
-        train_ven.drop(['sn', 'fault_time', 'label'], axis=1, inplace=True)
-        train_cra.drop(['sn', 'fault_time', 'label'], axis=1, inplace=True)
-        train = pd.concat([train_sel, train_ven, train_cra], axis=1)
+        train_ven.drop(['sn', 'fault_time', 'label', 'VEN_delta'], axis=1, inplace=True)
+        train_cra.drop(['sn', 'fault_time', 'label', 'CRA_delta'], axis=1, inplace=True)
+        # train = pd.concat([train_sel, train_ven, train_cra], axis=1)
+        train = pd.concat([train_sel], axis=1)
 
         print(" 模型训练...")
         model = CatBoost()
@@ -68,7 +69,8 @@ if __name__ == '__main__':
         print(" 特征拼接...")
         test_ven.drop(['sn', 'fault_time'], axis=1, inplace=True)
         test_cra.drop(['sn', 'fault_time'], axis=1, inplace=True)
-        test = pd.concat([test_sel, test_ven, test_cra], axis=1)
+        # test = pd.concat([test_sel, test_ven, test_cra], axis=1)
+        test = pd.concat([test_sel], axis=1)
 
         print(" 模型测试...")
         model = CatBoost()
