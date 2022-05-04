@@ -1,16 +1,20 @@
 import os
 import sys
 
+import numpy as np
+
 sys.path.append(os.path.dirname(sys.path[0]))
+
+from model.catboost import CatBoost
+from model.DL.exp import Exp
 
 import pandas as pd
 
 from feature.sel_feature_construct import SelFeatureConstruct
 from feature.ven_feature_construct import VenFeatureConstruct
 from feature.cra_feature_construct import CraFeatureConstruct
-from model.catboost import CatBoost
 
-TRAIN = False
+TRAIN = True
 TEST = True
 if __name__ == '__main__':
     # 训练
@@ -24,25 +28,30 @@ if __name__ == '__main__':
         train_sel_log = pd.read_csv('./data/preliminary_sel_log_dataset.csv')
         print(' 共需处理 {0} 条 SEL 日志'.format(len(train_sel_log)))
         train_sel = SelFeatureConstruct(train_sel_log, train_submit, train=True)
+        print(train_sel.head())
 
         print(" VEN 特征构造...")
         train_ven_log = pd.read_csv('./data/preliminary_venus_dataset.csv')
         print(' 共需处理 {0} 条 VEN 日志'.format(len(train_ven_log)))
         train_ven = VenFeatureConstruct(train_ven_log, train_submit, train=True)
+        print(train_ven.head())
 
         print(" CRA 特征构造...")
         train_cra_log = pd.read_csv('./data/preliminary_crashdump_dataset.csv')
         print(' 共需处理 {0} 条 CRA 日志'.format(len(train_cra_log)))
         train_cra = CraFeatureConstruct(train_cra_log, train_submit, train=True)
+        print(train_cra.head())
 
         print(" 特征拼接...")
-        train_ven.drop(['sn', 'fault_time', 'label', 'VEN_delta'], axis=1, inplace=True)
-        train_cra.drop(['sn', 'fault_time', 'label', 'CRA_delta'], axis=1, inplace=True)
-        # train = pd.concat([train_sel, train_ven, train_cra], axis=1)
-        train = pd.concat([train_sel], axis=1)
+        train_ven.drop(['sn', 'fault_time', 'label'], axis=1, inplace=True)
+        train_cra.drop(['sn', 'fault_time', 'label'], axis=1, inplace=True)
+        train = pd.concat([train_sel, train_ven, train_cra], axis=1)
+
+        col = train.replace(0, np.nan).dropna(axis=1, thresh=10).columns.values.tolist()
+        train = train[col]
 
         print(" 模型训练...")
-        model = CatBoost()
+        model = Exp()
         model.train(train)
 
     # 测试
@@ -69,11 +78,10 @@ if __name__ == '__main__':
         print(" 特征拼接...")
         test_ven.drop(['sn', 'fault_time'], axis=1, inplace=True)
         test_cra.drop(['sn', 'fault_time'], axis=1, inplace=True)
-        # test = pd.concat([test_sel, test_ven, test_cra], axis=1)
-        test = pd.concat([test_sel], axis=1)
+        test = pd.concat([test_sel, test_ven, test_cra], axis=1)
 
         print(" 模型测试...")
-        model = CatBoost()
+        model = Exp()
         result = model.test(test, test_submit)
         result[['sn', 'fault_time', 'label']].to_csv('./prediction_result/predictions.csv', index=False)
         print("完成测试!")

@@ -55,4 +55,5 @@ def CraFeatureConstruct(log, submit, train=True):
     data['CRA_fault_code_2'] = data['CRA_fault_code_2'].apply(lambda x: fc22id.get(x, len(fc22id)))
 
     data.drop(['log', 'fault_code'], axis=1, inplace=True)
+    data.to_csv('./user_data/tmp_data/cra_feature.csv', index=False)
     return data

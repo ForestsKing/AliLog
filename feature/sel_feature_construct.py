@@ -35,7 +35,7 @@ def getLogID(data, submit):
 
 def LogParse(df, train=True):
     # 建立语料库
-    with open('./user_data/tmp_data/log.log', "w") as f:
+    with open('./user_data/tmp_data/sel_log.log', "w") as f:
         for i in range(len(df)):
             string = df['sn'].values[i] + ' ' + df['time'].values[i] + ' ' + \
                      df['server_model'].values[i] + ' ' + df['msg'].values[i]
@@ -47,7 +47,7 @@ def LogParse(df, train=True):
     log_format = '<sn> <Date> <Time> <server_model> <Content>'
     parser = Spell(indir='./user_data/tmp_data/', outdir='./user_data/tmp_data/', log_format=log_format,
                    keep_para=False, tau=1.5, train=train)
-    df, event = parser.parse('log.log')
+    df, event = parser.parse('sel_log.log')
 
     if train:
         EventId2num = {}
@@ -213,4 +213,5 @@ def SelFeatureConstruct(data, submit, train=True):
     logid['SEL_server_model'] = logid['LogID'].apply(lambda x: getSM(data, x))
 
     logid.drop(['LogID', 'EventId', 'TimeFeature'], axis=1, inplace=True)
+    logid.to_csv('./user_data/tmp_data/sel_feature.csv', index=False)
     return logid

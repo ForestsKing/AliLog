@@ -17,7 +17,7 @@ class CatBoost:
         feature.remove('label')
         joblib.dump(feature, './user_data/model_data/feature.pkl')
 
-        X = data[feature].values
+        X = data[feature].fillna(0).values
         y = data['label'].values
 
         for k, (train_index, valid_index) in enumerate(self.kf.split(X, y)):
@@ -32,7 +32,7 @@ class CatBoost:
             y_valid_copy[(y_valid_copy == 2) | (y_valid_copy == 3)] = 0
 
             model1 = CatBoostClassifier(loss_function='Logloss', verbose=False, eval_metric='F1',
-                                        class_weights=[2 / 11, 9 / 11], random_seed=self.random_seed,
+                                        class_weights=[1 / 2, 1 / 2], random_seed=self.random_seed,
                                         learning_rate=0.1, use_best_model=True, train_dir='./user_data/model_data/log/')
             model1.fit(X_train, y_train_copy, eval_set=(X_valid, y_valid_copy), plot=False)
 
@@ -49,7 +49,7 @@ class CatBoost:
             y_valid_copy[y_valid_copy == 2] = 1
 
             model2 = CatBoostClassifier(loss_function='Logloss', verbose=False, eval_metric='F1',
-                                        class_weights=[4 / 9, 5 / 9], random_seed=self.random_seed,
+                                        class_weights=[1 / 2, 1 / 2], random_seed=self.random_seed,
                                         learning_rate=0.1, use_best_model=True, train_dir='./user_data/model_data/log/')
             model2.fit(X_train_copy, y_train_copy, eval_set=(X_valid_copy, y_valid_copy), plot=False)
 
@@ -105,7 +105,7 @@ class CatBoost:
         feature = joblib.load('./user_data/model_data/feature.pkl')
         # 测试
         preds = []
-        X_test = data[feature].values
+        X_test = data[feature].fillna(0).values
         for i in range(10):
             model1 = joblib.load('./user_data/model_data/catboost/model1_' + str(i) + '.pkl')
             model2 = joblib.load('./user_data/model_data/catboost/model2_' + str(i) + '.pkl')

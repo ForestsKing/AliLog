@@ -9,6 +9,7 @@ RUN /usr/local/bin/python -m pip install --upgrade pip && \
     pip install scipy -i https://pypi.tuna.tsinghua.edu.cn/simple && \
     pip install matplotlib -i https://pypi.tuna.tsinghua.edu.cn/simple && \
     pip install scikit-learn -i https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip install torch -i https://pypi.tuna.tsinghua.edu.cn/simple && \
     apt -y update &&  \
     apt install zip
 
